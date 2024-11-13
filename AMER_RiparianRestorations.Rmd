@@ -2,28 +2,42 @@
 title: "AMER_ProjectTopic.Rmd"
 output: pdf_document
 date: "2024-11-13"
+author: Holly Amer
 ---
  
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+# I. Literature review
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+ There have been more than 2,000 riparian restoration projects that have been planted over the last 30 years across Oregon. These projects are costly when it comes to money and time, so we want them to be well planned and reach the highest potential possible. They are beneficial to ecosystems because they positively impact water, wildlife, and humans that live near them. By researching riparian restorations across Oregon and looking at their growth over time, we can see which soil texture and water availability strata have the best effect on the plants within them. This will allow us to see which set of conditions will have the highest plant growth over time. 
+ 
+  From my current research, there is data from riparian restorations within the western side of Oregon including the ecoregions of the Willamette Valley, Coast Range, and Klamath Mountains. The data collected ranges across different soil textures (fine/coarse), water stress (low/high), and age groups (0-5, 5-10, 10-15, 15-20, and 20+). It aims to study how LAI will differ through time, across Oregon, through soil textures and water availability. This research will tell us the most effective spatial areas in Oregon to conduct efforts in riparian restoration to draw down as much carbon as possible, and create essential refined spatial data to inform future climate mitigation decisions.
+ 
+  There are many studies on Riparian Restorations, Western Oregon, and LAI as separate entities in many formats, but none that encompass all three areas. Detailed empirical data relating LAI and riparian restoration success has not been collected before in western Oregon. Soil texture and water stress are two variables that are known to affect plant growth and should be measured to assess their impacts on restoration projects within Oregon. To understand restoration trajectories, Leaf Area Index (LAI), a method that is widely used for measuring percent canopy cover, can be used to assess riparian planting success. Taking Digital Hemispherical Photos (DHP) allows researchers to have a permanent trace of data, which can be used for future comparisons and analyses (Fang et al., 2019, Chianucci and Cutini, 2012). LAI can be compared to variables such as soil texture and water stress, to assess how they impact plant growth over time. Restoration has been focused on as a primary goal in climate change mitigation for its positive impacts on biodiversity, wildlife habitats, and stream health. Carbon sequestration is a strong co-benefit of restoration that should be maximized (Dybala and Steger et al. 2018). 
+  
+  It is essential that ecologists measure the success of current riparian restoration projects, as we move into a future where restoration will continue to be a necessity for the health of our environment. So far, riparian restoration research has been spatially focused on North America, with South America with the next most studies (Dybala, Matzek, et al., 2018). There is also more focus on smaller temporal scales and fewer long-term studies that track ecosystem responses through climate change impacts (Li et al., 2022). Although more difficult, having studies over longer periods will help us to see how climate change affects these ecosystems, and which variables are the most affected. 
+  
+  My questions include: What is the impact of soil texture and water stress on Leaf Area Index (LAI) in Riparian Restoration projects in Western Oregon?
+  and What is the relationship between LAI and soil carbon in Riparian Restoration projects in Western Oregon?
+  My hypotheses are that as soil texture becomes more fine and water stress is lower, LAI will increase. I also hypothesize that as LAI increases, so will soil carbon content. 
+ 
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+# II. Dataset identification
 
-```{r cars}
-summary(cars)
-```
+I will primarily be using my own data. This includes Site info like water stress conditions, soil texture percentages, and age group, and the LAI values within each site/plot. 
 
-## Including Plots
+I may use some soil maps data (vector data) for my maps or for comparison, but I measured the soil texture for each of my plots for a more accurate comparison. https://www.arcgis.com/home/item.html?id=2290ec8cc5794a4eb1e3638535cf060f
+https://www.arcgis.com/sharing/rest/content/items/2290ec8cc5794a4eb1e3638535cf060f/info/metadata/metadata.xml?format=default&output=html 
+"USDA-NRCS-SPSD composite database that provides complete coverage of the best available soils information for all areas of the United States and Island Territories. It was created by combining data from the Soil Survey Geographic Database (SSURGO), State Soil Geographic Database (STATSGO2), and Raster Soil Survey Databases (RSS) into a single seamless ESRI file geodatabase."
 
-You can also embed plots, for example:
+# III. Workflow plan
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
+I plan on cleaning the data by getting rid of columns within my own data that are not necessary for this analysis, and clearing out any NAs from sites that had incomplete data collection. I also need to make it so that any mapping data I use is confined to my specific ecoregions and not all of Oregon (or the US).
+I will use the package lme4 to test with the random effect of site and look at my p-values, and the package car function vif to make sure things are not too correlated, because if they are they can't be used in the model. After using a random mixed effects model for my different variables, I will be able to tell the what causes the variations in the data. This will also tell me which combination of sampling strata lead to high/low carbon accumulation in both above and belowground portions. 
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+I want to make a graph with age group on the x-axis and LAI value on the y-axis with the color correlating to soil texture, and another with color correlating to water stress. I would also like to make a graph with soil carbon percent on the x-axis and LAI on the y-axis comparing these values. For the correlation between LAI and soil carbon, I will use a correlation model. I can use the cor.test function to see if these two variables are correlated.
+
+Finally, I will then make a map, with a continuous soil or canopy layer underneath, or some other underlayer to make it look nice. My data is comprised into small points, so I will have to think of a way to show this on a map, and look at other studies where they show data like this. This will show the LAI and soil carbon values at each site, and be focused on my ecoregions. 
+
