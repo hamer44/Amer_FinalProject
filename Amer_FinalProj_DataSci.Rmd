@@ -62,7 +62,8 @@ load("text_water.RData")
 
 ```
 
-```{r combine and clean data}
+```{r cleaning the texture dataset}
+# cleaning the texture dataset
 
 # selecting relevant columns
 texture2023 <- texture2023 %>% select(site, plot, sand, clay, silt)
@@ -73,7 +74,7 @@ texture2024 <- texture2024 %>% select(site, plot, sand, clay, silt)
 # combining 2023 and 2024 datasets
 texture <- rbind(texture2023, texture2024)
 
-# group texture columns by site and take averages
+# group texture site and take averages
 texture <- texture %>%
   group_by(site) %>%
   summarize(
@@ -83,9 +84,24 @@ texture <- texture %>%
   )
 
 
-# drop sites with bad data/no photos
+# drop sites with poor data/no photos
+texture <- texture %>%
+  filter(!(site %in% c("DAMa", "DAMb", "FTE", "HC20a", "HF10b", "LC00a", "LC10b", "LF05e", "LF15d", "LF15e", "PRV", "WC")))
 
+```
 
+```{r cleaning the water stress dataset}
+# cleaning the waterstress dataset
+
+# group water stress site and take averages
+climatedeficit <- climatedeficit %>%
+  group_by(site) %>%
+  summarize(
+    avg_deficit = mean(deficit, na.rm = TRUE))
+
+# drop sites with poor data/no photos
+climatedeficit <- climatedeficit %>%
+  filter(!(site %in% c("DAMa", "DAMb", "FTE", "HC20a", "HF10b", "LC00a", "LC10b", "LF05e", "LF15d", "LF15e", "PRV", "WC")))
 
 ```
 
