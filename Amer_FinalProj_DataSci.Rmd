@@ -1,29 +1,123 @@
 ---
-title: "Amer-FinalProj_DataSci"
+title: "LAI within Riparian Restorations, Final Project Data Sci Fall 2024"
 output: pdf_document
 date: "2024-11-22"
+author: Holly Amer and Regina O'Kelley
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+# load in packages
+library(ggplot2)
+library(ggpubr)
+library(tidyverse)
+library(broom)
+library(AICcmodavg)
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+# Introduction
+1)  Includes relevant background and references to scientific literature that foreshawdow the importance of each question;
+ 
+ There have been more than 2,000 riparian restoration projects that have been planted over the last 30 years across Oregon. These projects are costly when it comes to money and time, so we want them to be well planned and reach the highest potential possible. They are beneficial to ecosystems because they positively impact water, wildlife, and humans that live near them. By researching riparian restorations across Oregon and looking at their growth over time, we can see which soil texture and water availability strata have the best effect on the plants within them. This will allow us to see which set of conditions will have the highest plant growth over time. 
+ 
+  From my current research, there is data from riparian restorations within the western side of Oregon including the ecoregions of the Willamette Valley, Coast Range, and Klamath Mountains. The data collected ranges across different soil textures (fine/coarse), water stress (low/high), and age groups (0-5, 5-10, 10-15, 15-20, and 20+). It aims to study how LAI will differ through time, across Oregon, through soil textures and water availability. This research will tell us the most effective spatial areas in Oregon to conduct efforts in riparian restoration to draw down as much carbon as possible, and create essential refined spatial data to inform future climate mitigation decisions.
+ 
+  There are many studies on Riparian Restorations, Western Oregon, and LAI as separate entities in many formats, but none that encompass all three areas. Detailed empirical data relating LAI and riparian restoration success has not been collected before in western Oregon. Soil texture and water stress are two variables that are known to affect plant growth and should be measured to assess their impacts on restoration projects within Oregon. To understand restoration trajectories, Leaf Area Index (LAI), a method that is widely used for measuring percent canopy cover, can be used to assess riparian planting success. Taking Digital Hemispherical Photos (DHP) allows researchers to have a permanent trace of data, which can be used for future comparisons and analyses (Fang et al., 2019, Chianucci and Cutini, 2012). LAI can be compared to variables such as soil texture and water stress, to assess how they impact plant growth over time. Restoration has been focused on as a primary goal in climate change mitigation for its positive impacts on biodiversity, wildlife habitats, and stream health. Carbon sequestration is a strong co-benefit of restoration that should be maximized (Dybala and Steger et al. 2018). 
+  
+  It is essential that ecologists measure the success of current riparian restoration projects, as we move into a future where restoration will continue to be a necessity for the health of our environment. So far, riparian restoration research has been spatially focused on North America, with South America with the next most studies (Dybala, Matzek, et al., 2018). There is also more focus on smaller temporal scales and fewer long-term studies that track ecosystem responses through climate change impacts (Li et al., 2022). Although more difficult, having studies over longer periods will help us to see how climate change affects these ecosystems, and which variables are the most affected. 
+  
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+
+2)  a clear statement of 2-3 hypotheses. Using the OBA data, the hypotheses should address understanding a new dimension of bee conservation, ecology, or management. The hypotheses should be logical (i.e., make sense given published literature). 
+
+ My questions include: What is the impact of soil texture, water stress, and age on Leaf Area Index (LAI) in Riparian Restoration projects in Western Oregon?
+
+  My hypotheses are that as plantings become older, soil texture becomes more fine, and water stress is lower, LAI will increase. 
+
+
+# Data
+1) List of the three+ different data sets used, the type of data each represented, and general metadata (same as in the project workflow).
+  I will primarily be using my own data. This includes Site info like water stress conditions, soil texture percentages, and age group, and the LAI values within each site/plot. 
+
+2). The project should then read in and tidy the 2028-2023 data (including cleaning plant taxonomy if plant data is used, etc.) 
+
+# Combining and Cleaning the data
+```{r load in data}
+# load in LAI data
+LAI <- read.csv("RR_TNC_LAI_MASTER.csv", header = TRUE, colClasses = c("factor", "factor", "factor", "factor", "factor", "factor", "numeric", "factor", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric"))
+
+#texture 2023
+texture2023 <- read.csv("texture_2023.csv", header = TRUE)
+
+#texture 2024
+texture2024 <- read.csv("texture_2024.csv", header = TRUE)
+
+# r data file with water stress contents
+load("text_water.RData")
+
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r combine and clean data}
+
+# selecting relevant columns
+texture2023 <- texture2023 %>% select(site, plot, sand, clay, silt)
+
+# selecting relevant columns
+texture2024 <- texture2024 %>% select(site, plot, sand, clay, silt)
+
+# combining 2023 and 2024 datasets
+texture <- rbind(texture2023, texture2024)
+
+# group texture columns by site and take averages
+texture <- texture %>%
+  group_by(site) %>%
+  summarize(
+    avg_silt = mean(silt, na.rm = TRUE),
+    avg_sand = mean(sand, na.rm = TRUE),
+    avg_clay = mean(clay, na.rm = TRUE)
+  )
+
+
+# drop sites with bad data/no photos
+
+
+
+```
+
+
+
+
+# Data Wrangling and Summarizing
+Manipulation and summarizing data in relevant ways using tables, scatter plots,  histograms, barplots, etc. Initial exploration of data.
+
+
+# Hypothesis test
+Use of a statistical test (simulation of the null hypothesis, A/B testing or any other appropriate test) to test the stated hypotheses. 
+
+Correct interpretation of the outcome of the test. 
+
+
+# Visualization
+Final and publication-worthy visuals: They should address the hypotheses test, be clear, have correct labels, and include legends and units. 
+
+
+# Conclusion
+Conclusion that clearly answers the original hypotheses.
+
+
+# Overall
+1) Use of version control on GitHub (commits equivalent to commiting ever hour); 
+2) submission of a clear and complete rmarkdown and pdf; 
+3) overall organized and clear final workflow, code, and explanations
+
+
+
+
+
+
+
