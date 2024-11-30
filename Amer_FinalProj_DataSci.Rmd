@@ -136,16 +136,77 @@ texture_LAI %>%
   theme_showarrows() +
     labs(yarrow = "clay (%)",
        zarrow = "silt (%)",
-       xarrow = "sand(%)") +
+       xarrow = "sand(%)",
+       title = "Sites by Soil Texture and Age") +
   scale_colour_gradient(low = "yellow",
                         high = "red") +
   theme_clockwise()
 
 
-
+# https://saryace.github.io/flipbook_soiltexture_en/#1
 
 ```
 ```{r summary of water stress by age}
+# grouping water stress
+# deficit = PVT - EVT
+# < 225 mm lower water stress, >225 mm higher water stress
+
+master_dataset <- master_dataset %>%
+  mutate(
+    water_stress_group = case_when(
+      avg_deficit <= 225 ~ "Low",
+      avg_deficit > 225 ~ "High"
+    )
+  )
+
+# summarizing
+climate_summary <- master_dataset %>%
+  group_by(water_stress_group) %>%
+  summarize(num_sites = n_distinct(site))
+
+
+
+# Bar graph for climate type
+ggplot(climate_summary, aes(x = water_stress_group, y = num_sites, fill = water_stress_group)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Number of Sites by Climate Type",
+    x = "Climate Type",
+    y = "Number of Sites"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+```{r scatterplot of lai values based on water stress and texture}
+# average LAI by site 
+master_dataset <- master_dataset %>%
+  group_by(site) %>%
+  mutate(LAI_4_ring_avg = mean(LAI_4_ring, na.rm = TRUE)) %>%
+  ungroup()
+
+# scatterplot of lai values based on water stress and texture
+
+ggplot(master_dataset, aes(
+  x = years, 
+  y = LAI_4_ring_avg, 
+  color = avg_sand, 
+  shape = water_stress_group
+)) +
+  geom_point(size = 3) + 
+  scale_color_gradient(low = "yellow", high = "red") +  # Gradient for sand
+  labs(
+    x = "Years", 
+    y = "Average LAI", 
+    color = "Sand (%)", 
+    shape = "Water Stress Group",
+    title = "Average LAI at Each Site by Sand %, Age, and Water Stress"
+  ) +
+  theme_minimal()
+  
+
+
+
 
 ```
 
