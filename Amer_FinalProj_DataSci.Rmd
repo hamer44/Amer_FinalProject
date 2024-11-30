@@ -15,7 +15,7 @@ library(ggplot2)
 library(ggpubr)
 library(tidyverse)
 library(broom)
-library(AICcmodavg)
+
 ```
 
 
@@ -74,7 +74,7 @@ texture2024 <- texture2024 %>% select(site, plot, sand, clay, silt)
 # combining 2023 and 2024 datasets
 texture <- rbind(texture2023, texture2024)
 
-# group texture site and take averages
+# group texture by site and take averages
 texture <- texture %>%
   group_by(site) %>%
   summarize(
@@ -93,7 +93,7 @@ texture <- texture %>%
 ```{r cleaning the water stress dataset}
 # cleaning the waterstress dataset
 
-# group water stress site and take averages
+# group water stress by site and take averages
 climatedeficit <- climatedeficit %>%
   group_by(site) %>%
   summarize(
@@ -101,15 +101,53 @@ climatedeficit <- climatedeficit %>%
 
 # drop sites with poor data/no photos
 climatedeficit <- climatedeficit %>%
-  filter(!(site %in% c("DAMa", "DAMb", "FTE", "HC20a", "HF10b", "LC00a", "LC10b", "LF05e", "LF15d", "LF15e", "PRV", "WC")))
+  filter(!(site %in% c("HC00a", "HC00b", "HF00b", "HF15a", "LF00b", "HF00c", "DAMa", "DAMb", "FTE", "HC20a", "HF10b", "LC00a", "LC10b", "LF05e", "LF15d", "LF15e", "PRV", "WC", "LF20d")))
+
+# check same number of sites in each dataset
+nrow(climatedeficit) == nrow(texture)
 
 ```
 
 
 
-
 # Data Wrangling and Summarizing
 Manipulation and summarizing data in relevant ways using tables, scatter plots,  histograms, barplots, etc. Initial exploration of data.
+
+```{r soil texture triangle and sites}
+# soil texture traingle showing sites by texture type and age
+
+# LAI and texture
+texture_LAI <- merge(texture, LAI, by = "site")
+
+master_dataset <- merge(texture_LAI, climatedeficit, by = "site")
+
+
+library(ggtern)
+library(ggplot2)
+theme_set(theme_bw())
+texture_LAI %>%
+  ggtern(aes(
+    x = avg_sand,
+    y = avg_clay,
+    z = avg_silt,
+    color = years
+  )) + 
+  geom_point(size = 5) + 
+  theme_showarrows() +
+    labs(yarrow = "clay (%)",
+       zarrow = "silt (%)",
+       xarrow = "sand(%)") +
+  scale_colour_gradient(low = "yellow",
+                        high = "red") +
+  theme_clockwise()
+
+
+
+
+```
+```{r summary of water stress by age}
+
+```
 
 
 # Hypothesis test
