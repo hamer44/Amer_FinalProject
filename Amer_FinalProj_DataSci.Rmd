@@ -215,10 +215,47 @@ ggplot(master_dataset, aes(
 Use of a statistical test (simulation of the null hypothesis, A/B testing or any other appropriate test) to test the stated hypotheses. 
 
 Correct interpretation of the outcome of the test. 
+```{r}
+predict function
+
+
+
+
+```
+
+
 
 
 # Visualization
 Final and publication-worthy visuals: They should address the hypotheses test, be clear, have correct labels, and include legends and units. 
+```{r map of LAI points}
+library(ggplot2)
+library(sf)
+library(viridis)
+
+# keep relevant data for mapping
+LAI_mapping <- master_dataset %>% select(site, plot, avg_sand, years, latitude, longitude, water_stress_group)
+
+#create a spatial object
+LAI_sf <- st_as_sf(LAI_mapping, coords = c("longitude", "latitude"), crs = 4326)
+
+#map
+ggplot(LAI_sf) +
+  geom_sf(aes(color = avg_sand, shape = water_stress_group), size = 3) +
+  scale_color_viridis() + 
+  labs(color = "Average Sand", shape = "Water Stress Group") +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+#add ecoregions to map
+ecoregions <- st_read("path_to_your_shapefile/oregon_ecoregions.shp")
+
+
+
+
+
+
+```
 
 
 # Conclusion
