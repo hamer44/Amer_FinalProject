@@ -16,6 +16,7 @@ library(ggplot2)
 library(ggpubr)
 library(tidyverse)
 library(broom)
+library(lme4)
 
 ```
 
@@ -200,6 +201,8 @@ ggplot(master_dataset, aes(
   shape = water_stress_group
 )) +
   geom_point(size = 3) + 
+
+  
   scale_color_viridis() +
   labs(
     x = "Years", 
@@ -222,56 +225,123 @@ Use of a statistical test (simulation of the null hypothesis, A/B testing or any
 
 Correct interpretation of the outcome of the test. 
 ```{r}
-
-#correlation between texture and water stress
-water_texture_correlation <- cor(master_dataset$avg_sand, master_dataset$avg_deficit, use = "complete.obs")
-print(paste("Correlation coefficient:", water_texture_correlation))  
-
-#center the data
-master_dataset$texture_centered <- scale(master_dataset$avg_sand, center = TRUE, scale = FALSE)
-
-master_dataset$water_centered <- scale(master_dataset$avg_deficit, center = TRUE, scale = FALSE)
-
-
-# check for multicollinearity using the vif function in the car package
 library(car)
-modela <- lm(LAI_4_ring ~ texture_centered + water_centered + years + center_streambank, data = master_dataset)
-
-vif(modela)
-
-#acceptable values
-
-# linear mixed effects model
 library(lme4)
 library(Matrix)
 
-lmer_model <- lmer(LAI_4_ring ~ texture_centered * water_centered + years +
-                     center_streambank +
-                     (1 | site/plot), data = master_dataset)
-summary(lmer_model)
+#add column for silt+clay
+master_dataset <- master_dataset %>% mutate(soiltexture = avg_silt+avg_clay)
 
-model <- lm(LAI_4_ring_avg ~ texture_centered, data = master_dataset)
-summary(model)
-
-library(ggplot2)
-ggplot(master_dataset, aes(x = LAI_4_ring_avg, y =texture_centered)) +
-  geom_point() +
-  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "red") +
-  labs(x = "LAI", y = "% sand", title = "LAI vs sand")
-
-
-library(lme4)
+#scale and center all numeric data
 lai_scale <- master_dataset%>% mutate_if(is.numeric, scale)
 
-mi <- lmer(LAI_4_ring ~ center_streambank * years + avg_sand + (1 | site/plot), data = lai_scale)
 
-library(car)
-vif(mi)
+# model with just center/streambank
+model1 <- lmer(LAI_4_ring ~ center_streambank + (1 | site/plot), data = lai_scale)
+summary(model1)
+
+# add planting age
+model2 <- lmer(LAI_4_ring ~ center_streambank + years + (1 | site/plot), data = lai_scale)
+summary(model2)
+
+# compare models 1 and 2
+anova(model1, model2)
+
+# add soil texture
+model3 <- lmer(LAI_4_ring ~ center_streambank + years + soiltexture + (1 | site/plot), data = lai_scale)
+summary(model3)
+
+
+# compare models 2 and 3
+anova(model2, model3) 
+
+# add water stress 
+#model4 <- lmer(LAI_4_ring ~ center_streambank + years + soiltexture + avg_deficit + (1 | site/plot), data = lai_scale)
+#summary(model3) # does not improve model
+
+
+
+
+
+# plot predicted vs actual LAI values
+# calculate predicted LAI with scaled data
+lai_scale$predicted_LAI <- predict(model3)
+
+# back-transform the predicted LAI to the original scale
+original_mean <- mean(master_dataset$LAI_4_ring, na.rm = TRUE)
+original_sd <- sd(master_dataset$LAI_4_ring, na.rm = TRUE)
+
+lai_scale$predicted_LAI_original <- (lai_scale$predicted_LAI * original_sd) + original_mean
+
+# add observed (collected) LAI from the unscaled dataset
+lai_scale$collected_LAI <- master_dataset$LAI_4_ring
+
+# create the new dataset with the required columns
+new_dataset <- lai_scale %>%
+  select(site, plot, predicted_LAI_original, collected_LAI)# get predicted values using the scaled dataset (lai_scale)
+
+master_dataset$predicted_LAI <- predict(model3)
+
+
+
+# Now plot predicted vs observed
+ggplot(new_dataset, aes(x = predicted_LAI_original, y = collected_LAI)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red") +
+  theme_minimal() +
+  xlab("Predicted LAI") +
+  ylab("Observed LAI") +
+  ggtitle("Predicted vs. Observed LAI")
+#model fits pretty well
+
+
+
+
+
 
 
 ```
 
 
+```{r}
+# LAI vs texture simple model
+model_texture <- lm(LAI_4_ring_avg ~ soiltexture, data = master_dataset)
+summary(model_texture)
+
+
+
+
+# LAI vs texture plot
+ggplot(master_dataset, aes(x = soiltexture, y = LAI_4_ring_avg)) +
+  geom_point(color = "blue", alpha = 0.7, size = 3) + 
+  geom_smooth(method = "lm", se = TRUE, color = "red", linetype = "dashed") + # add regression line
+  labs(
+    title = "Relationship Between Soil Texture and LAI",
+    x = "Soil Texture",
+    y = "Leaf Area Index (LAI)"
+  ) +
+  theme_minimal() 
+
+
+
+#model water stress simple 
+model_waterdeficit <- lm(LAI_4_ring_avg ~ avg_deficit, data = master_dataset)
+summary(model_waterdeficit)
+
+# LAI vs water stress
+ggplot(master_dataset, aes(x = avg_deficit, y = LAI_4_ring_avg)) +
+  geom_point(color = "blue", alpha = 0.7, size = 3) + 
+  geom_smooth(method = "lm", se = TRUE, color = "red", linetype = "dashed") + # add regression line
+  labs(
+    title = "Relationship Between Water Stress and LAI",
+    x = "Water stress",
+    y = "Leaf Area Index (LAI)"
+  ) +
+  theme_minimal() 
+
+
+
+```
 
 
 # Visualization
