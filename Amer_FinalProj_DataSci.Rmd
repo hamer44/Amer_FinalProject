@@ -125,21 +125,25 @@ master_dataset <- merge(texture_LAI, climatedeficit, by = "site")
 library(ggtern)
 library(ggplot2)
 theme_set(theme_bw())
-texture_LAI %>%
+master_dataset %>%
   ggtern(aes(
     x = avg_sand,
     y = avg_clay,
     z = avg_silt,
-    color = years
+    #color = years
+    color = avg_deficit
   )) + 
   geom_point(size = 5) + 
   theme_showarrows() +
     labs(yarrow = "clay (%)",
        zarrow = "silt (%)",
        xarrow = "sand(%)",
-       title = "Sites by Soil Texture and Age") +
-  scale_color_viridis() +
-  theme_clockwise()
+       title = "Sites by Soil Texture and Water Deficit") +
+  scale_colour_gradient(low = "#3288bd",
+                        high = "#d53e4f", 
+                        name = "Average Water Deficit") +
+  theme_clockwise() +
+  theme_hidetitles()
 
 
 # https://saryace.github.io/flipbook_soiltexture_en/#1
@@ -197,7 +201,7 @@ ggplot(master_dataset, aes(
   labs(
     x = "Years", 
     y = "Average LAI", 
-    color = "Sand (%)", 
+    color = "Average Sand (%)", 
     shape = "Water Stress Group",
     title = "Average LAI at Each Site by Sand %, Age, and Water Stress"
   ) +
@@ -215,9 +219,38 @@ Use of a statistical test (simulation of the null hypothesis, A/B testing or any
 
 Correct interpretation of the outcome of the test. 
 ```{r}
-predict function
+
+#correlation between texture and water stress
+water_texture_correlation <- cor(master_dataset$avg_sand, master_dataset$avg_deficit, use = "complete.obs")
+print(paste("Correlation coefficient:", water_texture_correlation))  
+
+#center the data
+master_dataset$texture_centered <- scale(master_dataset$avg_sand, center = TRUE, scale = FALSE)
+
+master_dataset$water_centered <- scale(master_dataset$avg_deficit, center = TRUE, scale = FALSE)
+
+master_dataset$age_centered <- scale(master_dataset$years, center = TRUE, scale = FALSE)
 
 
+# check for multicollinearity using the vif function in the car package
+library(car)
+modela <- lm(LAI_4_ring ~ texture_centered + water_centered + age_centered + center_streambank, data = master_dataset)
+
+vif(modela)
+
+#acceptable values
+
+# linear mixed effects model
+library(lme4)
+
+lmer_model <- lmer(LAI_4_ring ~ texture_centered * water_centered + age_centered +
+                 #    center_streambank +
+                     (1 | site), data = master_dataset)
+summary(lmer_model)
+
+plot(resid(lmer_model), fitted(lmer_model))
+qqnorm(resid(lmer_model))
+qqline(resid(lmer_model))
 
 
 ```
@@ -236,27 +269,27 @@ library(ggspatial)
 # keep relevant data for mapping
 LAI_mapping <- master_dataset %>% select(site, plot, avg_sand, years, latitude, longitude, water_stress_group)
 
-#create a spatial object
+# create a spatial object
 LAI_sf <- st_as_sf(LAI_mapping, coords = c("longitude", "latitude"), crs = 4326)
 
 
-#add ecoregions to map
+# add ecoregions to map
 ecoregions <- st_read("OR-ecoregions/Ecoregions_OregonConservationStrategy.shp")
 
-#only relevant ecoregions
+# only relevant ecoregions
 ecoregions_filtered <- ecoregions %>%
   filter(Ecoregion %in% c("Willamette Valley", "Klamath Mountains", "Coast Range"))
 
-#map
+# make map
 ggplot() +
   
-  #ecoregions 
+  # ecoregions 
   geom_sf(data = ecoregions_filtered, aes(fill = Ecoregion), color = "black", alpha = 0.2) +
   
-  #points
+  # LAI points
   geom_sf(data = LAI_sf, aes(color = avg_sand, shape = water_stress_group), size = 3) +
   scale_color_viridis() + 
-  labs(color = "Average Sand %", shape = "Water Stress Group") +
+  labs(color = "Average Sand (%)", shape = "Water Stress Group") +
   theme_minimal() +
   theme(legend.position = "right") +
   scale_x_continuous(breaks = seq(-125, -120, by = 1)) +
