@@ -2,15 +2,16 @@
 title: "LAI within Riparian Restorations, Final Project Data Sci Fall 2024"
 output: pdf_document
 date: "2024-11-22"
-author: Holly Amer and Regina O'Kelley
+author: Holly Amer
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
 # load in packages
+
 library(ggplot2)
 library(ggpubr)
 library(tidyverse)
@@ -190,6 +191,8 @@ master_dataset <- master_dataset %>%
 
 # scatterplot of lai values based on water stress and texture
 
+library(viridis)
+
 ggplot(master_dataset, aes(
   x = years, 
   y = LAI_4_ring_avg, 
@@ -229,12 +232,10 @@ master_dataset$texture_centered <- scale(master_dataset$avg_sand, center = TRUE,
 
 master_dataset$water_centered <- scale(master_dataset$avg_deficit, center = TRUE, scale = FALSE)
 
-master_dataset$age_centered <- scale(master_dataset$years, center = TRUE, scale = FALSE)
-
 
 # check for multicollinearity using the vif function in the car package
 library(car)
-modela <- lm(LAI_4_ring ~ texture_centered + water_centered + age_centered + center_streambank, data = master_dataset)
+modela <- lm(LAI_4_ring ~ texture_centered + water_centered + years + center_streambank, data = master_dataset)
 
 vif(modela)
 
@@ -242,15 +243,30 @@ vif(modela)
 
 # linear mixed effects model
 library(lme4)
+library(Matrix)
 
-lmer_model <- lmer(LAI_4_ring ~ texture_centered * water_centered + age_centered +
-                 #    center_streambank +
-                     (1 | site), data = master_dataset)
+lmer_model <- lmer(LAI_4_ring ~ texture_centered * water_centered + years +
+                     center_streambank +
+                     (1 | site/plot), data = master_dataset)
 summary(lmer_model)
 
-plot(resid(lmer_model), fitted(lmer_model))
-qqnorm(resid(lmer_model))
-qqline(resid(lmer_model))
+model <- lm(LAI_4_ring_avg ~ texture_centered, data = master_dataset)
+summary(model)
+
+library(ggplot2)
+ggplot(master_dataset, aes(x = LAI_4_ring_avg, y =texture_centered)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "red") +
+  labs(x = "LAI", y = "% sand", title = "LAI vs sand")
+
+
+library(lme4)
+lai_scale <- master_dataset%>% mutate_if(is.numeric, scale)
+
+mi <- lmer(LAI_4_ring ~ center_streambank * years + avg_sand + (1 | site/plot), data = lai_scale)
+
+library(car)
+vif(mi)
 
 
 ```
