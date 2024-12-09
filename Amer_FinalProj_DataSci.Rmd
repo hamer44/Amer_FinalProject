@@ -17,6 +17,14 @@ library(ggpubr)
 library(tidyverse)
 library(broom)
 library(lme4)
+library(ggpmisc)
+library(sf)
+library(viridis)
+library(ggspatial)
+library(car)
+library(lme4)
+library(Matrix)
+library(performance)
 
 ```
 
@@ -116,14 +124,14 @@ nrow(climatedeficit) == nrow(texture)
 Manipulation and summarizing data in relevant ways using tables, scatter plots,  histograms, barplots, etc. Initial exploration of data.
 
 ```{r soil texture triangle and sites}
-# soil texture traingle showing sites by texture type and age
+# soil texture triangle showing sites by texture type and age
 
 # LAI and texture
 texture_LAI <- merge(texture, LAI, by = "site")
 
 master_dataset <- merge(texture_LAI, climatedeficit, by = "site")
 
-
+#creating texture triangle
 library(ggtern)
 library(ggplot2)
 theme_set(theme_bw())
@@ -145,9 +153,12 @@ master_dataset %>%
                         high = "#d53e4f", 
                         name = "Average Water Deficit") +
   theme_clockwise() +
-  theme_hidetitles()
+  theme_hidetitles() +
+  theme( plot.title = element_text(size = 16, face = "bold"), 
+    legend.title = element_text(size = 14, face = "bold"), 
+    legend.text = element_text(size = 12))
 
-
+# This code was taken from the following source:
 # https://saryace.github.io/flipbook_soiltexture_en/#1
 
 ```
@@ -201,8 +212,6 @@ ggplot(master_dataset, aes(
   shape = water_stress_group
 )) +
   geom_point(size = 3) + 
-
-  
   scale_color_viridis() +
   labs(
     x = "Years", 
@@ -225,11 +234,9 @@ Use of a statistical test (simulation of the null hypothesis, A/B testing or any
 
 Correct interpretation of the outcome of the test. 
 ```{r}
-library(car)
-library(lme4)
-library(Matrix)
+# This chunk is me testing different models, and looking at model improvement as I go. This is a WIP.
 
-#add column for silt+clay
+#add column for silt+clay texture
 master_dataset <- master_dataset %>% mutate(soiltexture = avg_silt+avg_clay)
 
 #scale and center all numeric data
@@ -241,26 +248,23 @@ model1 <- lmer(LAI_4_ring ~ center_streambank + (1 | site/plot), data = lai_scal
 summary(model1)
 
 # add planting age
-model2 <- lmer(LAI_4_ring ~ center_streambank + years + (1 | site/plot), data = lai_scale)
+model2 <- lmer(LAI_4_ring ~ center_streambank * years + (1 | site/plot), data = lai_scale)
 summary(model2)
 
 # compare models 1 and 2
-anova(model1, model2)
+anova(model1, model2) #improvement
 
 # add soil texture
-model3 <- lmer(LAI_4_ring ~ center_streambank + years + soiltexture + (1 | site/plot), data = lai_scale)
+model3 <- lmer(LAI_4_ring ~ center_streambank * years * soiltexture + (1 | site/plot), data = lai_scale)
 summary(model3)
 
-
 # compare models 2 and 3
-anova(model2, model3) 
+anova(model2, model3) #slight improvement, p value is almost significant
 
 # add water stress 
-#model4 <- lmer(LAI_4_ring ~ center_streambank + years + soiltexture + avg_deficit + (1 | site/plot), data = lai_scale)
-#summary(model3) # does not improve model
-
-
-
+# model4 <- lmer(LAI_4_ring ~ center_streambank * years * soiltexture + avg_deficit + (1 | site/plot), data = lai_scale)
+# summary(model3) 
+# anova(model3, model4) # does not improve model
 
 
 # plot predicted vs actual LAI values
@@ -284,7 +288,7 @@ master_dataset$predicted_LAI <- predict(model3)
 
 
 
-# Now plot predicted vs observed
+# plot predicted vs observed
 ggplot(new_dataset, aes(x = predicted_LAI_original, y = collected_LAI)) +
   geom_point(alpha = 0.5) +
   geom_smooth(method = "lm", color = "red") +
@@ -310,21 +314,33 @@ summary(model_texture)
 
 
 
-
 # LAI vs texture plot
 ggplot(master_dataset, aes(x = soiltexture, y = LAI_4_ring_avg)) +
   geom_point(color = "blue", alpha = 0.7, size = 3) + 
   geom_smooth(method = "lm", se = TRUE, color = "red", linetype = "dashed") + # add regression line
+  
+  stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., ..p.value.label.., sep = "~~~")), # add p-value and r values to graph
+    formula = y ~ x,
+    parse = TRUE,
+    label.x = 1, 
+    label.y = 3 
+  ) +
+
   labs(
     title = "Relationship Between Soil Texture and LAI",
-    x = "Soil Texture",
+    x = "Soil Texture (Clay+Silt%)",
     y = "Leaf Area Index (LAI)"
   ) +
-  theme_minimal() 
+  theme_minimal() +
+  theme( plot.title = element_text(size = 16, face = "bold"), 
+    legend.title = element_text(size = 14, face = "bold"),
+    axis.text = element_text(size = 14), 
+    axis.title = element_text(size = 16))
 
 
 
-#model water stress simple 
+# model water stress simple 
 model_waterdeficit <- lm(LAI_4_ring_avg ~ avg_deficit, data = master_dataset)
 summary(model_waterdeficit)
 
@@ -332,12 +348,26 @@ summary(model_waterdeficit)
 ggplot(master_dataset, aes(x = avg_deficit, y = LAI_4_ring_avg)) +
   geom_point(color = "blue", alpha = 0.7, size = 3) + 
   geom_smooth(method = "lm", se = TRUE, color = "red", linetype = "dashed") + # add regression line
+  
+    
+  stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., ..p.value.label.., sep = "~~~")), # add p-value and r values to graph
+    formula = y ~ x,
+    parse = TRUE,
+    label.x = 5, 
+    label.y = 5 
+  ) +
+  
   labs(
     title = "Relationship Between Water Stress and LAI",
     x = "Water stress",
     y = "Leaf Area Index (LAI)"
   ) +
-  theme_minimal() 
+  theme_minimal() +
+  theme( plot.title = element_text(size = 16, face = "bold"), 
+    legend.title = element_text(size = 14, face = "bold"),
+    axis.text = element_text(size = 14), 
+    axis.title = element_text(size = 16))
 
 
 
@@ -347,10 +377,6 @@ ggplot(master_dataset, aes(x = avg_deficit, y = LAI_4_ring_avg)) +
 # Visualization
 Final and publication-worthy visuals: They should address the hypotheses test, be clear, have correct labels, and include legends and units. 
 ```{r map of LAI points}
-library(ggplot2)
-library(sf)
-library(viridis)
-library(ggspatial)
 
 # keep relevant data for mapping
 LAI_mapping <- master_dataset %>% select(site, plot, avg_sand, years, latitude, longitude, water_stress_group)
