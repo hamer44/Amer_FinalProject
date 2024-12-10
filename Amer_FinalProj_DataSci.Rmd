@@ -258,7 +258,8 @@ model3 <- lmer(LAI_4_ring ~ center_streambank * years * soiltexture + (1 | site/
 summary(model3)
 
 # compare models 2 and 3
-anova(model2, model3) #slight improvement, p value is almost significant
+anova(model2, model3) #improvement, p-value highly significant <.001 
+# This model tells us that water stress is related to soil texture depending on time and photo position within plot (center or streambank)
 
 # add water stress 
 # model4 <- lmer(LAI_4_ring ~ center_streambank * years * soiltexture + avg_deficit + (1 | site/plot), data = lai_scale)
@@ -303,11 +304,7 @@ ggplot(new_dataset, aes(x = predicted_LAI_original, y = collected_LAI)) +
     label.x = 5, 
     label.y = 5 
   )
-#model fits pretty well
-
-
-
-
+#model fits well
 
 
 
