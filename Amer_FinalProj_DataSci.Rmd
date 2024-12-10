@@ -10,8 +10,7 @@ author: Holly Amer
 ```
 
 ```{r}
-# load in packages
-
+# all necessary packages
 library(ggplot2)
 library(ggpubr)
 library(tidyverse)
@@ -295,7 +294,15 @@ ggplot(new_dataset, aes(x = predicted_LAI_original, y = collected_LAI)) +
   theme_minimal() +
   xlab("Predicted LAI") +
   ylab("Observed LAI") +
-  ggtitle("Predicted vs. Observed LAI")
+  ggtitle("Predicted vs. Observed LAI") +
+  
+   stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., ..p.value.label.., sep = "~~~")), # add p-value and r values to graph
+    formula = y ~ x,
+    parse = TRUE,
+    label.x = 5, 
+    label.y = 5 
+  )
 #model fits pretty well
 
 
@@ -307,6 +314,52 @@ ggplot(new_dataset, aes(x = predicted_LAI_original, y = collected_LAI)) +
 ```
 
 
+
+# Visualization
+Final and publication-worthy visuals: They should address the hypotheses test, be clear, have correct labels, and include legends and units. 
+```{r map of LAI points}
+
+# keep relevant data for mapping
+LAI_mapping <- master_dataset %>% select(site, plot, avg_sand, years, latitude, longitude, water_stress_group)
+
+# create a spatial object
+LAI_sf <- st_as_sf(LAI_mapping, coords = c("longitude", "latitude"), crs = 4326)
+
+
+# add ecoregions to map
+ecoregions <- st_read("OR-ecoregions/Ecoregions_OregonConservationStrategy.shp")
+
+# only relevant ecoregions
+ecoregions_filtered <- ecoregions %>%
+  filter(Ecoregion %in% c("Willamette Valley", "Klamath Mountains", "Coast Range"))
+
+# make map
+ggplot() +
+  
+  # ecoregions 
+  geom_sf(data = ecoregions_filtered, aes(fill = Ecoregion), color = "black", alpha = 0.2) +
+  
+  # LAI points
+  geom_sf(data = LAI_sf, aes(color = avg_sand, shape = water_stress_group), size = 3) +
+  scale_color_viridis() + 
+  labs(color = "Average Sand (%)", shape = "Water Stress Group") +
+  theme_minimal() +
+  theme(legend.position = "right") +
+  scale_x_continuous(breaks = seq(-125, -120, by = 1)) +
+  ggtitle("Map of LAI points by Ecoregion with Texture \n and Water Stress") +
+
+
+# add a north arrow 
+  annotation_north_arrow(location = "tl", which_north = "true", height = unit(.8, "cm"), width = unit(.7, "cm")) +
+    
+# add a scale
+  annotation_scale(location = "bl", width_hint = 0.3, height = unit(.1, "cm"))
+
+
+
+
+
+```
 ```{r}
 # LAI vs texture simple model
 model_texture <- lm(LAI_4_ring_avg ~ soiltexture, data = master_dataset)
@@ -360,7 +413,7 @@ ggplot(master_dataset, aes(x = avg_deficit, y = LAI_4_ring_avg)) +
   
   labs(
     title = "Relationship Between Water Stress and LAI",
-    x = "Water stress",
+    x = "Water stress (PVT-EVT)",
     y = "Leaf Area Index (LAI)"
   ) +
   theme_minimal() +
@@ -369,70 +422,52 @@ ggplot(master_dataset, aes(x = avg_deficit, y = LAI_4_ring_avg)) +
     axis.text = element_text(size = 14), 
     axis.title = element_text(size = 16))
 
-
-
-```
-
-
-# Visualization
-Final and publication-worthy visuals: They should address the hypotheses test, be clear, have correct labels, and include legends and units. 
-```{r map of LAI points}
-
-# keep relevant data for mapping
-LAI_mapping <- master_dataset %>% select(site, plot, avg_sand, years, latitude, longitude, water_stress_group)
-
-# create a spatial object
-LAI_sf <- st_as_sf(LAI_mapping, coords = c("longitude", "latitude"), crs = 4326)
-
-
-# add ecoregions to map
-ecoregions <- st_read("OR-ecoregions/Ecoregions_OregonConservationStrategy.shp")
-
-# only relevant ecoregions
-ecoregions_filtered <- ecoregions %>%
-  filter(Ecoregion %in% c("Willamette Valley", "Klamath Mountains", "Coast Range"))
-
-# make map
-ggplot() +
+# LAI vs age plot
+ggplot(master_dataset, aes(x = years, y = LAI_4_ring_avg)) +
+  geom_point(color = "blue", alpha = 0.7, size = 3) + 
+  geom_smooth(method = "lm", se = TRUE, color = "red", linetype = "dashed") + # add regression line
   
-  # ecoregions 
-  geom_sf(data = ecoregions_filtered, aes(fill = Ecoregion), color = "black", alpha = 0.2) +
-  
-  # LAI points
-  geom_sf(data = LAI_sf, aes(color = avg_sand, shape = water_stress_group), size = 3) +
-  scale_color_viridis() + 
-  labs(color = "Average Sand (%)", shape = "Water Stress Group") +
+  stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., ..p.value.label.., sep = "~~~")), # add p-value and r values to graph
+    formula = y ~ x,
+    parse = TRUE,
+    label.x = 1, 
+    label.y = 3 
+  ) +
+
+  labs(
+    title = "Relationship Between Age and LAI",
+    x = "Site Age",
+    y = "Leaf Area Index (LAI)"
+  ) +
   theme_minimal() +
-  theme(legend.position = "right") +
-  scale_x_continuous(breaks = seq(-125, -120, by = 1)) +
-  ggtitle("Map of LAI points by Ecoregion with Texture \n and Water Stress") +
-
-
-# add a north arrow 
-  annotation_north_arrow(location = "tl", which_north = "true", height = unit(.8, "cm"), width = unit(.7, "cm")) +
-    
-# add a scale
-  annotation_scale(location = "bl", width_hint = 0.3, height = unit(.1, "cm"))
-
-
-
-
+  theme( plot.title = element_text(size = 16, face = "bold"), 
+    legend.title = element_text(size = 14, face = "bold"),
+    axis.text = element_text(size = 14), 
+    axis.title = element_text(size = 16))
 
 ```
 
 
 # Conclusion
 Conclusion that clearly answers the original hypotheses.
+Leaf Area Index can be influenced by many different variables, as canopy cover and plant life thrive under different conditions, depending on their preferred habitats. Some of the original data exploration shows where the variation in my data lies, including more low water stress than high water stress, and many silty sites sampled. Through the data analysis I have completed, I show that there was a strong significance of site age on LAI, with a p-value of <.001 and an R^2 of .47, which aligned with my hypothesis. I also showed that there is not a significant influence between LAI and soil texture, or LAI and water stress alone. I had originally hypothesized that sites with finer soil would have a higher LAI, and sites with lower water stress would also have a higher LAI value, but these trends were not shown in individual linear regression models. However through a mixed linear effects model, LAI is related to soil texture, with the slope of that relationship varying depending on the center/streambank position, and the planting age. This is shown through the results of model 3, which has a strong model significance with an R^2 of .77 and a p-value of <.001. This means that the chance of seeing these results based on chance is less than .1%, and we can reject the null hypothesis. Our high R^2 value tells us that 77% of the variation in LAI can be explained by soil texture, age, and image placement together. I plan on doing further analysis to this data, such as testing variables like temperature and precipitation to see if they have an impact on LAI rather than the water stress variable, and playing around with other current model interactions. 
 
+# References
+Acevedo, Sara. Soil texture triangles using R. (2021). 
+https://saryace.github.io/flipbook_soiltexture_en/#1
 
-# Overall
-1) Use of version control on GitHub (commits equivalent to commiting ever hour); 
-2) submission of a clear and complete rmarkdown and pdf; 
-3) overall organized and clear final workflow, code, and explanations
+Chianucci, F., & Cutini, A. (2012). Digital hemispherical photography for estimating forest canopy properties: Current controversies and opportunities. Iforest-Biogeosciences and Forestry, 5, 290–295. https://doi.org/10.3832/ifor0775-005 
 
+Fang, H., Baret, F., Plummer, S., & Schaepman-Strub, G. (2019). An overview of global leaf area index (LAI): Methods, products, validation, and applications. Reviews of Geophysics. 57, 739–799. https://doi.org/10.1029/2018RG000608 
 
+Dybala KE, Matzek V, Gardali T, Seavy NE. Carbon sequestration in riparian forests: A global synthesis and meta-analysis. Glob Change Biol. 2018; 25: 57–67. https://doi.org/10.1111/gcb.14475 
 
+Dybala KE, Steger K, Walsh RG, Smart DR, Gardali T, Seavy NE. Optimizing carbon storage and biodiversity co-benefits in reforested riparian zones. J Appl Ecol. 2019; 56: 343–353. https://doi.org/10.1111/1365-2664.13272 
 
+Li, W., Migliavacca, M., Forkel, M. et al. Widespread increasing vegetation sensitivity to soil moisture. Nat Commun 13, 3959 (2022). https://doi.org/10.1038/s41467-022-31667-9 
+
+Thorson, T.D., Bryce, S.A., Lammers, D.A., Woods, A.J., Omernik, J.M., Kagan, J., Pater, D.E., and Comstock, J.A., 2003. Ecoregions of Oregon (color poster with map, descriptive text, summary tables, and photographs): Reston, Virginia, U.S. Geological Survey (map scale 1:1,500,000).
 
 
 
